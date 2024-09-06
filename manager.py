@@ -255,13 +255,17 @@ def windowcreate(indic,update = False):
             sub_scrollbar = tb.Scrollbar(sub_frame, orient=VERTICAL, command=sub_canvas.yview)
             sub_scrollbar.pack(side=RIGHT, fill=Y)
             sub_canvas.configure(yscrollcommand=sub_scrollbar.set)
-            print("hello world")
             third_frame = Frame(sub_canvas, width=100, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
             sub_canvas.create_window((0, 0), window=third_frame, anchor="nw")
             search = tb.Entry(subcata, textvariable=text_var,width=30)
             search.pack(anchor='w',expand=True,padx=15,pady=5)
+            cun.execute("SELECT name FROM database WHERE LENGTH(ID) >2")
+            tempname = cun.fetchall()
+            subnames = []
+            for i in range(len(tempname)):
+                subnames.append(tempname[i][0])
             for i in range(readbase('countb',id)):
-                button = tb.Button(subcata, text=f'{i}',takefocus=False,width=10,style='Custom.TButton')
+                button = tb.Button(subcata, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
                 if i % 2 == 0:
                     button.place(x=10, y = i*35)
                 else:
