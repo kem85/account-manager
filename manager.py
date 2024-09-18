@@ -77,12 +77,15 @@ def update_scrollregion(count = 0): #update 4 scrolling
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
 def ADD(): #this will make it to THAT window
     def clear(cond):
-        cun.execute('''SELECT name FROM database''')
+        if catagory_var.get() == 1:
+            cun.execute('''SELECT name FROM database WHERE cata == 'false' ''')
+        else:
+            cun.execute('''SELECT name FROM database WHERE cata = ? ''',(Combo_Box.get(),))
         namer = cun.fetchall()
-        filter = False
-        for i,x in enumerate(namer):
-          if name_var.get() in  namer[i]:
-            filter = True
+        filter=False
+        for i in range(len(namer)):
+            if name_var.get() in namer[i]:
+                filter = True
         if cond == 0:
             if not filter and ((len(color_var.get()) == 6) or color_var.get() == "") and name_var.get() != "" and ((email_var.get() != "" and password_var.get() !="" and Combo_Box.get() != "") or catagory_var.get()):
                 Submit.configure(state = 'disabled')
