@@ -24,7 +24,8 @@ update_combobox()
 root = tb.Window(themename="vapor")
 text_var = tb.StringVar()
 name_var = tb.StringVar()
-state_var = tb.BooleanVar(value=True)
+state_var = tb.StringVar(value='LLm')
+canscroll_var = tb.BooleanVar(value=True)
 email_var = tb.StringVar()
 color_var = tb.StringVar()
 id_var = tb.StringVar()
@@ -34,11 +35,15 @@ catagory_var = tb.IntVar()
 buttons= tb.Style()
 search_name = []
 buttonss = []
+buttons2 = []
 button_id = {}
 buttons.configure('Custom.TButton', font=('Helvetica', 12),foreground='#C0C0C0')
 def on_text_change(*args): #search
-    global search_name
-    cun.execute('''SELECT name FROM database WHERE cata == 'false' ''')
+    global search_name,buttonss
+    if state_var.get()=='LLm':
+        cun.execute('''SELECT name FROM database WHERE cata == 'false' ''')
+    else:
+        cun.execute('''SELECT name FROM database WHERE cata = ?''',(state_var.get(),))
     templst = cun.fetchall()
     lst = []
     for i in range(len(templst)):
@@ -48,13 +53,20 @@ def on_text_change(*args): #search
     for i,cur in enumerate(nlst):
         if cur == curt and len(curt)!=0:
             search_name.append(lst[i])
-    windowcreate('searchc')
+    if state_var.get()=='LLm':
+        windowcreate('searchc')
+    else:
+        windowcreate('searchb')
     search_name.clear()
     if(text_var.get() == ""):
-        windowcreate('catagory')
+        if state_var.get()=='LLm':
+            windowcreate('catagory')
+        else:
+            windowcreate(state_var.get())
     update_scrollregion()
 def on_mousewheel(event): #scrolling
-    my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    if canscroll_var.get():
+         my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 def update_scrollregion(count = 0): #update 4 scrolling
     if count <=0:
         count = readbase('countc')
@@ -65,7 +77,6 @@ def update_scrollregion(count = 0): #update 4 scrolling
     second_frame.update_idletasks()
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
 def ADD(): #this will make it to THAT window
-    
     def clear(cond):
         cun.execute('''SELECT name FROM database''')
         namer = cun.fetchall()
@@ -119,7 +130,7 @@ def ADD(): #this will make it to THAT window
     global addwindow,editwindow,buttonwindow
     if not addwindow.get() and not editwindow.get():
         addwindow.set(True)
-        state_var.set(False)
+        canscroll_var.set(False)
         addacc = Toplevel(root)
         addacc.title("Add Account")
         deffont = ('Helvetica', 18)
@@ -131,7 +142,7 @@ def ADD(): #this will make it to THAT window
         centerY = int(screenHeight/2 - windowHeight / 2)
         addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
         addacc.resizable(False, False)
-        addacc.protocol("WM_DELETE_WINDOW", lambda: (addwindow.set(False) , addacc.destroy(),state_var.set(True)))
+        addacc.protocol("WM_DELETE_WINDOW", lambda: (addwindow.set(False) , addacc.destroy(),canscroll_var.set(True)))
         Name_Label = tb.Label(addacc, text='Name:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
         Name_Label.grid(column=0,row=0)
         Email_Label = tb.Label(addacc, text='Email:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
@@ -161,7 +172,7 @@ def EDIT(): #same thing
     global editwindow,addwindow,buttonwindow
     if not editwindow.get() and not addwindow.get():
         editwindow.set(True)
-        state_var.set(False)
+        canscroll_var.set(False)
         editacc = Toplevel(root)
         windowWidth = 450
         windowHeight = 300
@@ -171,7 +182,7 @@ def EDIT(): #same thing
         centerY = int(screenHeight/2 - windowHeight / 2)
         editacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
         editacc.resizable(False, False)
-        editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),state_var.set(True)))
+        editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),canscroll_var.set(True)))
 def database(name,email,password,color, catagory,id):
     sql = ''' INSERT INTO database(name,email,password,color,cata,ID)
               VALUES(?,?,?,?,?,?) '''
@@ -192,11 +203,11 @@ def readbase(indic,id = 0):
                 count += 1
         return count
 def windowcreate(indic,update = False): #this will make it THAT window
-    global poscat_var,posbut_var,buttonss
+    global poscat_var,posbut_var,buttonss,state_var
     if indic == 'catagory':
             if update:
                 for button in buttonss:
-                 button.place_forget()
+                    button.place_forget()
             buttonss.clear()
             cun.execute("SELECT name FROM database WHERE cata = 'false'")
             names = cun.fetchall()
@@ -219,8 +230,6 @@ def windowcreate(indic,update = False): #this will make it THAT window
         for i in range(len(search_name)):
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=13,style='Custom.TButton')
             button.configure(command=lambda b = search_name[i]: windowcreate(b))
-            cun.execute("SELECT ID FROM database WHERE name = ?", (search_name[i],))
-            button_id[button] = cun.fetchone()[0]
             if i % 2 == 0:
                 button.place(x=10, y = i*35)
             else:
@@ -228,24 +237,36 @@ def windowcreate(indic,update = False): #this will make it THAT window
             buttonss.append(button)
         update_scrollregion(len(search_name))
     elif indic == 'searchb':
-        pass
+        for button in buttons2:
+             button.place_forget()
+        buttons2.clear()
+        for i in range(len(search_name)):
+            button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style='Custom.TButton')
+            if i % 2 == 0:
+                button.place(x=10, y = i*35)
+            else:
+                button.place(x=180, y=(i-1)*35)
+            buttons2.append(button)
+        update_scrollregion(len(search_name))
     else:
             global my_canvas
-            for widget in second_frame.winfo_children():
-                widget.destroy()
+            if state_var.get() == 'LLm':
+                for widget in second_frame.winfo_children():
+                    widget.destroy()
+                windowWidth = 325
+                windowHeight = 450
+                screenWidth = root.winfo_screenwidth()
+                screenHeight = root.winfo_screenheight()
+                centerX = int(screenWidth/2 - windowWidth / 2)
+                centerY = int(screenHeight/2 - windowHeight / 2)
+                root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+            state_var.set(indic)
             cun.execute("SELECT ID FROM database WHERE name = ?", (indic,))
             id = cun.fetchone()[0]
-            windowWidth = 325
-            windowHeight = 450
-            screenWidth = root.winfo_screenwidth()
-            screenHeight = root.winfo_screenheight()
-            centerX = int(screenWidth/2 - windowWidth / 2)
-            centerY = int(screenHeight/2 - windowHeight / 2)
-            root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
             # subcata.resizable(False, False)
             second_frame.configure(width=325, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
             my_canvas.configure(width = 100, height = 150)
-            cun.execute("SELECT name FROM database WHERE LENGTH(ID) >2")
+            cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
             tempname = cun.fetchall()
             subnames = []
             for i in range(len(tempname)):
@@ -256,6 +277,7 @@ def windowcreate(indic,update = False): #this will make it THAT window
                     button.place(x=10, y = i*35)
                 else:
                     button.place(x=180, y=(i-1)*35)
+                buttons2.append(button)
 
 addwindow = BooleanVar()
 editwindow = BooleanVar()
