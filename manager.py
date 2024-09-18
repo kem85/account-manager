@@ -63,12 +63,11 @@ def on_text_change(*args): #search
             windowcreate('catagory')
         else:
             windowcreate(state_var.get())
-    update_scrollregion()
 def on_mousewheel(event): #scrolling
     if canscroll_var.get():
          my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 def update_scrollregion(count = 0): #update 4 scrolling
-    if count <=0:
+    if count <= 0:
         count = readbase('countc')
     min_height = 500  
     my_canvas.update_idletasks()
@@ -214,8 +213,6 @@ def windowcreate(indic,update = False): #this will make it THAT window
             for i in range(readbase('countc')): #45 buttons
                 button = tb.Button(second_frame, text=f'{names[i][0]}',takefocus=False,width=13,style='Custom.TButton')
                 button.configure(command=lambda b = names[i][0]: windowcreate(b))
-                cun.execute("SELECT ID FROM database WHERE name = ?", (names[i][0],))
-                button_id[button] = cun.fetchone()[0]
                 if i % 2 == 0:
                     button.place(x=8, y = i*35)
                 else:
@@ -231,9 +228,9 @@ def windowcreate(indic,update = False): #this will make it THAT window
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=13,style='Custom.TButton')
             button.configure(command=lambda b = search_name[i]: windowcreate(b))
             if i % 2 == 0:
-                button.place(x=10, y = i*35)
+                button.place(x=8, y = i*35)
             else:
-                button.place(x=180, y=(i-1)*35)
+                button.place(x=179, y=(i-1)*35)
             buttonss.append(button)
         update_scrollregion(len(search_name))
     elif indic == 'searchb':
@@ -243,16 +240,16 @@ def windowcreate(indic,update = False): #this will make it THAT window
         for i in range(len(search_name)):
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style='Custom.TButton')
             if i % 2 == 0:
-                button.place(x=10, y = i*35)
+                button.place(x=8, y = i*35)
             else:
-                button.place(x=180, y=(i-1)*35)
+                button.place(x=179, y=(i-1)*35)
             buttons2.append(button)
         update_scrollregion(len(search_name))
     else:
             global my_canvas
             if state_var.get() == 'LLm':
                 for widget in second_frame.winfo_children():
-                    widget.destroy()
+                    widget.place_forget()
                 windowWidth = 325
                 windowHeight = 450
                 screenWidth = root.winfo_screenwidth()
@@ -274,10 +271,12 @@ def windowcreate(indic,update = False): #this will make it THAT window
             for i in range(readbase('countb',id)):
                 button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
                 if i % 2 == 0:
-                    button.place(x=10, y = i*35)
+                    button.place(x=8, y = i*35)
                 else:
-                    button.place(x=180, y=(i-1)*35)
+                    button.place(x=179, y=(i-1)*35)
                 buttons2.append(button)
+            update_scrollregion(len(tempname))
+            
 
 addwindow = BooleanVar()
 editwindow = BooleanVar()
@@ -314,7 +313,7 @@ def default_page():
     # Update scroll region to include all buttons
     windowcreate('catagory')
     update_scrollregion()
-    my_canvas.bind_all("<MouseWheel>", on_mousewheel)   
+    my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
 default_page()
 # Bind mouse wheel scrolling
 text_var.trace_add("write", on_text_change)
