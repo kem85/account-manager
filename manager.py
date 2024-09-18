@@ -1,8 +1,7 @@
-import tkinter as tk
 import os
+import ttkbootstrap as tb
 from tkinter import messagebox
 from tkinter import BooleanVar, Toplevel, Frame, BOTH, LEFT, RIGHT, VERTICAL, Y
-import ttkbootstrap as tb
 from ttkbootstrap.constants import PRIMARY
 import sqlite3
 conn = sqlite3.connect(f'{os.getcwd()}/accounts.db')
@@ -23,15 +22,15 @@ def update_combobox():
         options.append(i)
 update_combobox()
 root = tb.Window(themename="vapor")
-text_var = tk.StringVar()
-name_var = tk.StringVar()
-state_var = tk.BooleanVar(value=True)
-email_var = tk.StringVar()
-color_var = tk.StringVar()
-id_var = tk.StringVar()
-posbut_var =tk.IntVar()
-password_var = tk.StringVar()
-catagory_var = tk.IntVar()
+text_var = tb.StringVar()
+name_var = tb.StringVar()
+state_var = tb.BooleanVar(value=True)
+email_var = tb.StringVar()
+color_var = tb.StringVar()
+id_var = tb.StringVar()
+posbut_var =tb.IntVar()
+password_var = tb.StringVar()
+catagory_var = tb.IntVar()
 buttons= tb.Style()
 search_name = []
 buttonss = []
@@ -55,8 +54,7 @@ def on_text_change(*args): #search
         windowcreate('catagory')
     update_scrollregion()
 def on_mousewheel(event): #scrolling
-    if state_var.get():
-        my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 def update_scrollregion(count = 0): #update 4 scrolling
     if count <=0:
         count = readbase('countc')
@@ -66,9 +64,10 @@ def update_scrollregion(count = 0): #update 4 scrolling
     my_canvas.configure(scrollregion=(bbox[0], bbox[1], bbox[2], max(bbox[3], min_height)))
     second_frame.update_idletasks()
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
-def ADD():
+def ADD(): #this will make it to THAT window
+    
     def clear(cond):
-        cun.execute('''SELECT name FROM database WHERE cata == 'false' ''')
+        cun.execute('''SELECT name FROM database''')
         namer = cun.fetchall()
         filter = False
         for i,x in enumerate(namer):
@@ -118,7 +117,7 @@ def ADD():
             Password_Entry.grid()
             Combo_Box.place(x=269,y=260)
     global addwindow,editwindow,buttonwindow
-    if not addwindow.get() and not editwindow.get() and not buttonwindow.get():
+    if not addwindow.get() and not editwindow.get():
         addwindow.set(True)
         state_var.set(False)
         addacc = Toplevel(root)
@@ -137,7 +136,7 @@ def ADD():
         Name_Label.grid(column=0,row=0)
         Email_Label = tb.Label(addacc, text='Email:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
         Email_Label.grid(column=0,row=1)
-        Password_Label = tb.Label(addacc, text='Password:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
+        Password_Label = tb.Label(addacc, text='Pass:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
         Password_Label.grid(column=0,row=2)
         Color_Label = tb.Label(addacc, text='Color:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
         Color_Label.grid(column=0,row=3)
@@ -158,9 +157,9 @@ def ADD():
         Catagory.place(x=10,y=260)
         Combo_Box.place(x=269,y=260)
         Submit.place(x=135,y=260)
-def EDIT():
+def EDIT(): #same thing
     global editwindow,addwindow,buttonwindow
-    if not editwindow.get() and not addwindow.get() and not buttonwindow.get():
+    if not editwindow.get() and not addwindow.get():
         editwindow.set(True)
         state_var.set(False)
         editacc = Toplevel(root)
@@ -192,7 +191,7 @@ def readbase(indic,id = 0):
             if i[0][0] == id:
                 count += 1
         return count
-def windowcreate(indic,update = False):
+def windowcreate(indic,update = False): #this will make it THAT window
     global poscat_var,posbut_var,buttonss
     if indic == 'catagory':
             if update:
@@ -207,9 +206,9 @@ def windowcreate(indic,update = False):
                 cun.execute("SELECT ID FROM database WHERE name = ?", (names[i][0],))
                 button_id[button] = cun.fetchone()[0]
                 if i % 2 == 0:
-                    button.place(x=10, y = i*35)
+                    button.place(x=8, y = i*35)
                 else:
-                    button.place(x=180, y=(i-1)*35)
+                    button.place(x=179, y=(i-1)*35)
                 buttonss.append(button)
             update_scrollregion()
     elif indic == 'searchc':
@@ -231,84 +230,70 @@ def windowcreate(indic,update = False):
     elif indic == 'searchb':
         pass
     else:
-        global editwindow,addwindow,buttonwindow
-        if not editwindow.get() and not addwindow.get() and not buttonwindow.get():
+            global my_canvas
+            for widget in second_frame.winfo_children():
+                widget.destroy()
             cun.execute("SELECT ID FROM database WHERE name = ?", (indic,))
             id = cun.fetchone()[0]
-            state_var.set(False)
-            buttonwindow.set(True)
-            subcata = Toplevel(root)
-            subcata.title("accounts")
-            windowWidth = 220
-            windowHeight = 240
+            windowWidth = 325
+            windowHeight = 450
             screenWidth = root.winfo_screenwidth()
             screenHeight = root.winfo_screenheight()
             centerX = int(screenWidth/2 - windowWidth / 2)
             centerY = int(screenHeight/2 - windowHeight / 2)
-            subcata.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+            root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
             # subcata.resizable(False, False)
-            subcata.protocol("WM_DELETE_WINDOW", lambda: (buttonwindow.set(False) , subcata.destroy(),state_var.set(True)))
-            sub_frame = tb.Frame(subcata,height=10)
-            sub_frame.pack(fill=BOTH, expand=1)
-            sub_canvas = tb.Canvas(sub_frame, width=100, height=200)
-            sub_canvas.pack(side=LEFT, fill=BOTH, expand=1)
-            sub_scrollbar = tb.Scrollbar(sub_frame, orient=VERTICAL, command=sub_canvas.yview)
-            sub_scrollbar.pack(side=RIGHT, fill=Y)
-            sub_canvas.configure(yscrollcommand=sub_scrollbar.set)
-            third_frame = Frame(sub_canvas, width=100, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
-            sub_canvas.create_window((0, 0), window=third_frame, anchor="nw")
-            search = tb.Entry(subcata, textvariable=text_var,width=30)
-            search.pack(anchor='w',expand=True,padx=15,pady=5)
+            second_frame.configure(width=325, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
+            my_canvas.configure(width = 100, height = 150)
             cun.execute("SELECT name FROM database WHERE LENGTH(ID) >2")
             tempname = cun.fetchall()
             subnames = []
             for i in range(len(tempname)):
                 subnames.append(tempname[i][0])
             for i in range(readbase('countb',id)):
-                button = tb.Button(subcata, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
+                button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
                 if i % 2 == 0:
                     button.place(x=10, y = i*35)
                 else:
                     button.place(x=180, y=(i-1)*35)
 
-
 addwindow = BooleanVar()
 editwindow = BooleanVar()
-buttonwindow = BooleanVar()
+#buttonwindow = BooleanVar()
 #####################################################################
-root.title("Accounts")
-windowWidth = 340
-windowHeight = 450
-screenWidth = root.winfo_screenwidth()
-screenHeight = root.winfo_screenheight()
-centerX = int(screenWidth/2 - windowWidth / 2)
-centerY = int(screenHeight/2 - windowHeight / 2)
-root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
-# root.resizable(False, False)
-#####################################################################
-main_frame = tb.Frame(root)
-main_frame.pack(fill=BOTH, expand=1)
-my_canvas = tb.Canvas(main_frame, width=100, height=405)
-root.configure(bg='#110833')
-my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
-my_scrollbar = tb.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
-my_scrollbar.pack(side=RIGHT, fill=Y)
-my_canvas.configure(yscrollcommand=my_scrollbar.set)
-second_frame = Frame(my_canvas, width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
-my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
-#####################################################################
-
-
-search = tb.Entry(root, textvariable=text_var,width=30)
-edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
-edit.pack(side='right', anchor='e')
-search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
-add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD())
-add.pack(side='left', anchor='e')
-# Update scroll region to include all buttons
-windowcreate('catagory')
-update_scrollregion()
+def default_page():
+    global my_canvas,second_frame
+    root.title("Accounts")
+    windowWidth = 335
+    windowHeight = 450
+    screenWidth = root.winfo_screenwidth()
+    screenHeight = root.winfo_screenheight()
+    centerX = int(screenWidth/2 - windowWidth / 2)
+    centerY = int(screenHeight/2 - windowHeight / 2)
+    root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+    # root.resizable(False, False)
+    #####################################################################
+    main_frame = tb.Frame(root)
+    main_frame.pack(fill=BOTH, expand=1)
+    my_canvas = tb.Canvas(main_frame, width=100, height=405)
+    root.configure(bg='#110833')
+    my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+    my_scrollbar = tb.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
+    my_scrollbar.pack(side=RIGHT, fill=Y)
+    my_canvas.configure(yscrollcommand=my_scrollbar.set)
+    second_frame = Frame(my_canvas, width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
+    my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
+    search = tb.Entry(root, textvariable=text_var,width=30)
+    edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
+    edit.pack(side='right', anchor='e')
+    search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
+    add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD())
+    add.pack(side='left', anchor='e')
+    # Update scroll region to include all buttons
+    windowcreate('catagory')
+    update_scrollregion()
+    my_canvas.bind_all("<MouseWheel>", on_mousewheel)   
+default_page()
 # Bind mouse wheel scrolling
-my_canvas.bind_all("<MouseWheel>", on_mousewheel)
 text_var.trace_add("write", on_text_change)
 root.mainloop()

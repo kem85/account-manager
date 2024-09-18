@@ -1,0 +1,5 @@
+--add phases for height of each frame (catagory / subcatagory)
+--make the edit button function
+--add a back button
+--make each button in subcatagory functionable
+--fix the search bar for subcatagory
