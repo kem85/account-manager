@@ -1,5 +1,7 @@
 --add phases for height of each frame (catagory / subcatagory)
---make the edit button function
+--make the edit button function 
 --add a back button (add state var to True when backing)
---make each button in subcatagory functionable
---fix the search bar for subcatagory
+--make each button in subcatagory functionable 
+--fix the search bar for subcatagory [done]
+--adjust screen width and height and make it customize it thru edit function
+--make colors a functionable feature
