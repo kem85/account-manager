@@ -318,6 +318,6 @@ def default_page():
     update_scrollregion()
     my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
 default_page()
-# Bind mouse wheel scrolling
+# Bind mouse wheel scrollings
 text_var.trace_add("write", on_text_change)
 root.mainloop()
