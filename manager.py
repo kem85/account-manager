@@ -287,7 +287,7 @@ def windowcreate(indic,update = False): #this will make it THAT window
             cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
             tempname = cun.fetchall()
             subnames = []
-            for i in range(len(tempname)):
+            for i in range(len(tempname));
                 subnames.append(tempname[i][0])
             for i in range(readbase('countb',id)):
                 button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
