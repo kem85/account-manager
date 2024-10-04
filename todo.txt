@@ -5,4 +5,4 @@
 --fix the search bar for subcatagory [done] [done]
 --adjust screen width and height and make it customize it thru edit function
 --make colors a functionable feature
---add a right click feature to back /add / edit 
+--add a right click feature to back /add / edi
