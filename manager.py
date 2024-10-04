@@ -76,12 +76,15 @@ def update_scrollregion(count = 0): #update 4 scrolling
     second_frame.update_idletasks()
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
 def ADD(name=""): #this will make it to THAT window
+    global addwindow,editwindow,buttonwindow
     global Combo_Box
     if name != "Add":
         global state_var
         state_var.set("LLm")
         for widget in root.winfo_children():
             widget.destroy()
+        editwindow.set(False)
+        addwindow.set(False)
         default_page()
     else:
         def clear(cond):
@@ -140,7 +143,6 @@ def ADD(name=""): #this will make it to THAT window
                 Password_Label.grid()
                 Password_Entry.grid()
                 Combo_Box.place(x=269,y=260)
-        global addwindow,editwindow,buttonwindow
         if not addwindow.get() and not editwindow.get():
             addwindow.set(True)
             canscroll_var.set(False)
@@ -275,7 +277,7 @@ def windowcreate(indic,update = False): #this will make it THAT window
                 centerY = int(screenHeight/2 - windowHeight / 2)
                 root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
             state_var.set(indic)
-            edit.config(text="Add",command=lambda:(ADD(name="Add"),Combo_Box.set(state_var.get())))
+            edit.config(text="Add",command=lambda:(ADD(name="Add"),Combo_Box.set(state_var.get()),catagory_var.set(0)))
             add.config(text="Back",command=lambda:ADD(name="greger"))
             cun.execute("SELECT ID FROM database WHERE name = ?", (indic,))
             id = cun.fetchone()[0]
