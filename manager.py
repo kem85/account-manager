@@ -1,6 +1,7 @@
 import os
 import ttkbootstrap as tb
 from tkinter import messagebox
+import pyperclip
 from tkinter import BooleanVar, Toplevel, Frame, BOTH, LEFT, RIGHT, VERTICAL, Y
 from ttkbootstrap.constants import PRIMARY
 import sqlite3
@@ -76,7 +77,7 @@ def update_scrollregion(count = 0): #update 4 scrolling
     second_frame.update_idletasks()
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
 def ADD(name=""): #this will make it to THAT window
-    global addwindow,editwindow,buttonwindow
+    global addwindow,editwindow
     global Combo_Box
     if name != "Add":
         global state_var
@@ -143,7 +144,7 @@ def ADD(name=""): #this will make it to THAT window
                 Password_Label.grid()
                 Password_Entry.grid()
                 Combo_Box.place(x=269,y=260)
-        if not addwindow.get() and not editwindow.get():
+        if not addwindow.get() and not editwindow.get() and not subcatagory.get():
             addwindow.set(True)
             canscroll_var.set(False)
             addacc = Toplevel(root)
@@ -183,9 +184,9 @@ def ADD(name=""): #this will make it to THAT window
             Catagory.place(x=10,y=260)
             Combo_Box.place(x=269,y=260)
             Submit.place(x=135,y=260)
-def EDIT(name = ""): #same thing
-    global editwindow,addwindow,buttonwindow
-    if not editwindow.get() and not addwindow.get():
+def EDIT(): #same thing
+    global editwindow,addwindow
+    if not editwindow.get() and not addwindow.get() and not subcatagory.get():
         editwindow.set(True)
         canscroll_var.set(False)
         editacc = Toplevel(root)
@@ -217,7 +218,7 @@ def readbase(indic,id = 0):
             if i[0][0] == id:
                 count += 1
         return count
-def windowcreate(indic,update = False): #this will make it THAT window
+def windowcreate(indic,update = False,subcata=""): #this will make it THAT window
     global poscat_var,posbut_var,buttonss,state_var
     if indic == 'catagory': # creates the catagory
             if update:
@@ -263,19 +264,13 @@ def windowcreate(indic,update = False): #this will make it THAT window
         update_scrollregion(len(search_name))
     else:
             global my_canvas
-            if state_var.get() == 'LLm':
-                for widget in second_frame.winfo_children():
-                    widget.place_forget()
-            if update:
+            root.title(indic)
+            if state_var.get() == 'LLm' or update:
                 for widget in second_frame.winfo_children():
                     widget.place_forget()
                 windowWidth = 330
                 windowHeight = 450
-                screenWidth = root.winfo_screenwidth()
-                screenHeight = root.winfo_screenheight()
-                centerX = int(screenWidth/2 - windowWidth / 2)
-                centerY = int(screenHeight/2 - windowHeight / 2)
-                root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+                root.geometry(f'{windowWidth}x{windowHeight}')
             state_var.set(indic)
             edit.config(text="Add",command=lambda:(ADD(name="Add"),Combo_Box.set(state_var.get()),catagory_var.set(0)))
             add.config(text="Back",command=lambda:ADD(name="greger"))
@@ -287,30 +282,74 @@ def windowcreate(indic,update = False): #this will make it THAT window
             cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
             tempname = cun.fetchall()
             subnames = []
-            for i in range(len(tempname));
+            for i in range(len(tempname)):
                 subnames.append(tempname[i][0])
             for i in range(readbase('countb',id)):
                 button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
+                button.configure(command=lambda b = subnames[i]: windowcreate(indic,False,b))
                 if i % 2 == 0:
                     button.place(x=4, y = i*35)
                 else:
                     button.place(x=200, y=(i-1)*35)
                 buttons2.append(button)
             update_scrollregion(len(tempname))
+    if subcata != "":
+        global editwindow,addwindow,subcatagory
+        if not subcatagory.get() and not editwindow.get() and not addwindow.get():
+            root.withdraw()
+            cun.execute("SELECT ID,name,email,password FROM database WHERE name = ? AND cata = ?", (subcata,indic))
+            deffont = ('Helvetica',18)
+            info = cun.fetchone()
+            subcatagory.set(True)
+            canscroll_var.set(False)
+            subcat = Toplevel(root)
+            subcat.attributes("-topmost", True)
+            subcat.title(subcata)
+            windowWidth = 300
+            windowHeight = 125
+            screenWidth = root.winfo_screenwidth()
+            screenHeight = root.winfo_screenheight()
+            centerX = int(screenWidth/2 - windowWidth / 2)
+            centerY = int(screenHeight/2 - windowHeight / 2)
+            subcat.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+            # subcat.resizable(False, False) 
+            style = tb.Style()
+            style.configure("TEntry", selectbackground="#191830")
+            username = tb.Label(subcat,text="Name: ",takefocus=False,width=7,style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            username_entry = tb.Entry(subcat,width=15,takefocus=False,style=PRIMARY,font=deffont)
+            password = tb.Label(subcat,text="Pass: ",takefocus=False,width=7,style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            password_entry = tb.Entry(subcat,width=15,takefocus=False,style=PRIMARY,font=deffont)
+            username_entry.insert(tb.END,info[2])
+            password_entry.insert(tb.END,info[3])
+            username_entry.config(state=tb.READONLY)
+            password_entry.config(state=tb.READONLY)
+            username.place(x=5,y=10)
+            password.place(x=5,y=70)
+            password_entry.place(x=85,y=65)
+            username_entry.place(x=85,y=5)
+            def copy(name=""):
+                if name=="pass":
+                     pyperclip.copy(info[3])
+                else:
+                    pyperclip.copy(info[2])
+            username_entry.bind("<Button-1>",lambda event:copy())
+            password_entry.bind("<Button-1>", lambda event: copy("pass"))
+            subcat.protocol("WM_DELETE_WINDOW", lambda: (subcatagory.set(False) , subcat.destroy(),canscroll_var.set(True),root.deiconify()))
+
 addwindow = BooleanVar()
 editwindow = BooleanVar()
-#buttonwindow = BooleanVar()
+subcatagory = BooleanVar()
 #####################################################################
+windowWidth = 335
+windowHeight = 450
+screenWidth = root.winfo_screenwidth()
+screenHeight = root.winfo_screenheight()
+centerX = int(screenWidth/2 - windowWidth / 2)
+centerY = int(screenHeight/2 - windowHeight / 2)
+root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
 def default_page():
     global my_canvas,second_frame,edit,add,state_var,main_frame
     root.title("Accounts")
-    windowWidth = 335
-    windowHeight = 450
-    screenWidth = root.winfo_screenwidth()
-    screenHeight = root.winfo_screenheight()
-    centerX = int(screenWidth/2 - windowWidth / 2)
-    centerY = int(screenHeight/2 - windowHeight / 2)
-    root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
     # root.resizable(False, False)
     #####################################################################
     main_frame = tb.Frame(root)
@@ -325,7 +364,7 @@ def default_page():
     my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
     my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
     search = tb.Entry(root, textvariable=text_var,width=30)
-    edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT("Edit"))
+    edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
     edit.pack(side='right', anchor='e')
     search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
     add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD("Add"))
