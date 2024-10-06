@@ -75,15 +75,16 @@ def update_scrollregion(count = 0): #update 4 scrolling
     bbox = my_canvas.bbox("all")
     my_canvas.configure(scrollregion=(bbox[0], bbox[1], bbox[2], max(bbox[3], min_height)))
     second_frame.update_idletasks()
+    my_canvas.yview_moveto(0)
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
-def ADD(name=""): #this will make it to THAT window
+def ADD(name=""):
     global addwindow,editwindow
     global Combo_Box
-    if name != "Add":
+    if name != "Add" and not addwindow.get() and not editwindow.get():
         global state_var
         state_var.set("LLm")
         for widget in root.winfo_children():
-            widget.destroy()
+            widget.forget()
         editwindow.set(False)
         addwindow.set(False)
         default_page()
@@ -137,27 +138,18 @@ def ADD(name=""): #this will make it to THAT window
                 Email_Entry.grid_remove()
                 Password_Label.grid_remove()
                 Password_Entry.grid_remove()
-                Combo_Box.place_forget()
             elif cond == 1 and catagory_var.get() == 0:
                 Email_Label.grid()
                 Email_Entry.grid()
                 Password_Label.grid()
                 Password_Entry.grid()
-                Combo_Box.place(x=269,y=260)
         if not addwindow.get() and not editwindow.get() and not subcatagory.get():
             addwindow.set(True)
             canscroll_var.set(False)
             addacc = Toplevel(root)
-            addacc.title("Add Account")
             deffont = ('Helvetica', 18)
-            windowWidth = 425
-            windowHeight = 300
-            screenWidth = root.winfo_screenwidth()
-            screenHeight = root.winfo_screenheight()
-            centerX = int(screenWidth/2 - windowWidth / 2)
-            centerY = int(screenHeight/2 - windowHeight / 2)
-            addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
-            addacc.resizable(False, False)
+            deffant = ('Helvetica', 14)
+            # addacc.resizable(False, False)
             addacc.protocol("WM_DELETE_WINDOW", lambda: (addwindow.set(False) , addacc.destroy(),canscroll_var.set(True)))
             Name_Label = tb.Label(addacc, text='Name:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
             Name_Label.grid(column=0,row=0)
@@ -167,23 +159,41 @@ def ADD(name=""): #this will make it to THAT window
             Password_Label.grid(column=0,row=2)
             Color_Label = tb.Label(addacc, text='Color:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
             Color_Label.grid(column=0,row=3)
-            Name_Entry = tb.Entry(addacc,width=15,textvariable=name_var,font=deffont)
-            Email_Entry = tb.Entry(addacc,width=15,font=deffont,textvariable=email_var)
-            Password_Entry = tb.Entry(addacc,width=15,font=deffont,textvariable=password_var)
-            Color_Entry = tb.Entry(addacc,width=15,font=deffont,textvariable=color_var)
+            Password_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=password_var)
+            Name_Entry = tb.Entry(addacc,width=15,textvariable=name_var,font=deffant)
+            Email_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=email_var)
+            Color_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=color_var)
             Name_Entry.grid(column=1,row=0,pady=10,padx=5)
             Email_Entry.grid(column=1,row=1,pady=10,padx=5)
             Password_Entry.grid(column=1,row=2,pady=10,padx=5)
             Color_Entry.grid(column=1,row=3,pady=10,padx=5)
             addacc.option_add('*TCombobox*Listbox.font', ('Helvetica', 14))
-            Combo_Box = tb.Combobox(addacc,values=options,font=('Helvetica', 14),width=10)
+            Combo_Box = tb.Combobox(addacc,values=options,font=('Helvetica', 12),width=10)
+            Submit = tb.Button(addacc,takefocus=False,width=10,style='Custom.TButton',text="Submit",command=lambda:(clear(0)))
+            if add.cget("text") != "Back":
+                Submit.place(x=85,y=110)
+                addacc.title("Add Catagory")
+                catagory_var.set(1)
+                clear(1)
+                windowWidth = 275
+                windowHeight = 150
+                screenWidth = root.winfo_screenwidth()
+                screenHeight = root.winfo_screenheight()
+                centerX = int(screenWidth/2 - windowWidth / 2)
+                centerY = int(screenHeight/2 - windowHeight / 2)
+                addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+            else:
+                Submit.place(x=89,y=225)
+                addacc.title("Add Account")
+                windowWidth = 275
+                windowHeight = 272
+                screenWidth = root.winfo_screenwidth()
+                screenHeight = root.winfo_screenheight()
+                centerX = int(screenWidth/2 - windowWidth / 2)
+                centerY = int(screenHeight/2 - windowHeight / 2)
+                addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
             style = tb.Style()
             style.configure('Custom.TCheckbutton', font=('Helvetica', 18),foreground='#C0C0C0')
-            Catagory = tb.Checkbutton(addacc,width=10,text="Catagory",onvalue=1,offvalue=0,style='Custom.TCheckbutton',variable=catagory_var,command=lambda:clear(1))
-            Submit = tb.Button(addacc,takefocus=False,width=10,style='Custom.TButton',text="Submit",command=lambda:(clear(0)))
-            Catagory.place(x=10,y=260)
-            Combo_Box.place(x=269,y=260)
-            Submit.place(x=135,y=260)
 def EDIT(): #same thing
     global editwindow,addwindow
     if not editwindow.get() and not addwindow.get() and not subcatagory.get():
@@ -213,10 +223,23 @@ def readbase(indic,id = 0):
                     ''')
         return cun.fetchone()[0]
     elif indic == "countb":
-        cun.execute("SELECT ID FROM database WHERE LENGTH(ID) >= 2")
-        for i in cun:
-            if i[0][0] == id:
-                count += 1
+        cun.execute("SELECT ID FROM database WHERE LENGTH(ID) >= 2 AND cata = ?",(state_var.get(),))
+        ID = cun.fetchall()
+        temp = ""
+        if int(id) >= 10:
+            for i in range(len(ID)):
+                temp = ""
+                for j in range(len(ID[i][0])):
+                    if ID[i][0][j] != "/":
+                        temp += ID[i][0][j]
+                    else:
+                        break
+                if temp == id:
+                    count += 1
+        else:
+            for i in ID:
+                if i[0][0] == id:
+                    count += 1
         return count
 def windowcreate(indic,update = False,subcata=""): #this will make it THAT window
     global poscat_var,posbut_var,buttonss,state_var
@@ -232,10 +255,10 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
                 button.configure(command=lambda b = names[i][0]: windowcreate(b))
                 if i % 2 == 0:
                     button.place(x=8, y = i*35)
+                    update_scrollregion()
                 else:
                     button.place(x=179, y=(i-1)*35)
                 buttonss.append(button)
-            update_scrollregion()
     elif indic == 'searchc': 
         global search_name
         for button in buttonss:
@@ -257,9 +280,9 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
         for i in range(len(search_name)):
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style='Custom.TButton')
             if i % 2 == 0:
-                button.place(x=8, y = i*35)
+                button.place(x=4, y = i*35)
             else:
-                button.place(x=179, y=(i-1)*35)
+                button.place(x=200, y=(i-1)*35)
             buttons2.append(button)
         update_scrollregion(len(search_name))
     else:
@@ -335,7 +358,6 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
             username_entry.bind("<Button-1>",lambda event:copy())
             password_entry.bind("<Button-1>", lambda event: copy("pass"))
             subcat.protocol("WM_DELETE_WINDOW", lambda: (subcatagory.set(False) , subcat.destroy(),canscroll_var.set(True),root.deiconify()))
-
 addwindow = BooleanVar()
 editwindow = BooleanVar()
 subcatagory = BooleanVar()
