@@ -33,6 +33,8 @@ id_var = tb.StringVar()
 posbut_var =tb.IntVar()
 password_var = tb.StringVar()
 catagory_var = tb.IntVar()
+widget_info = []
+subcata_info= []
 buttons= tb.Style()
 search_name = []
 buttonss = []
@@ -78,16 +80,15 @@ def update_scrollregion(count = 0): #update 4 scrolling
     my_canvas.yview_moveto(0)
     second_frame.configure(width=340, height=count*35) #50*45, 45 is y for each button and 50 is number of button
 def ADD(name=""):
-    global addwindow,editwindow
-    global Combo_Box
+    global addwindow,editwindow,Combo_Box,widget_info
     if name != "Add" and not addwindow.get() and not editwindow.get():
         global state_var
         state_var.set("LLm")
-        for widget in root.winfo_children():
-            widget.forget()
+        for widget,method,info in subcata_info:
+            widget.place_forget()
         editwindow.set(False)
         addwindow.set(False)
-        default_page()
+        default_page("previous")
     else:
         def clear(cond):
             if catagory_var.get() == 1:
@@ -104,6 +105,7 @@ def ADD(name=""):
                     Submit.configure(state = 'disabled')
                     messagebox.showinfo(title="Successful", message="Added account successfully")
                     Submit.configure(state = 'enabled')
+                    addacc.focus_force()
                     if readbase("countc") != 0 and catagory_var.get():
                         id_var.set(f"{readbase("countc")+1}")
                     elif catagory_var.get():
@@ -128,6 +130,7 @@ def ADD(name=""):
                     Submit.configure(state = 'disabled')
                     messagebox.showerror("Unsuccessful", "Invaild Format") 
                     Submit.configure(state = 'enabled')
+                    addacc.focus_force()
                 name_var.set("")
                 color_var.set("")
                 email_var.set("")
@@ -242,7 +245,7 @@ def readbase(indic,id = 0):
                     count += 1
         return count
 def windowcreate(indic,update = False,subcata=""): #this will make it THAT window
-    global poscat_var,posbut_var,buttonss,state_var
+    global poscat_var,posbut_var,buttonss,state_var,widget_info,subcata_info
     if indic == 'catagory': # creates the catagory
             if update:
                 for button in buttonss:
@@ -258,6 +261,7 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
                     update_scrollregion()
                 else:
                     button.place(x=179, y=(i-1)*35)
+                widget_info.append((button, button.place_info()))
                 buttonss.append(button)
     elif indic == 'searchc': 
         global search_name
@@ -309,6 +313,7 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
                 subnames.append(tempname[i][0])
             for i in range(readbase('countb',id)):
                 button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
+                subcata_info.append((button, 'place', button.place_info()))
                 button.configure(command=lambda b = subnames[i]: windowcreate(indic,False,b))
                 if i % 2 == 0:
                     button.place(x=4, y = i*35)
@@ -369,30 +374,41 @@ screenHeight = root.winfo_screenheight()
 centerX = int(screenWidth/2 - windowWidth / 2)
 centerY = int(screenHeight/2 - windowHeight / 2)
 root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
-def default_page():
+def default_page(name=""):
     global my_canvas,second_frame,edit,add,state_var,main_frame
     root.title("Accounts")
     # root.resizable(False, False)
     #####################################################################
-    main_frame = tb.Frame(root)
-    main_frame.pack(fill=BOTH, expand=1)
-    my_canvas = tb.Canvas(main_frame, width=100, height=405)
-    root.configure(bg='#110833')
-    my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
-    my_scrollbar = tb.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
-    my_scrollbar.pack(side=RIGHT, fill=Y)
-    my_canvas.configure(yscrollcommand=my_scrollbar.set)
-    second_frame = Frame(my_canvas, width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
-    my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
-    my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
-    search = tb.Entry(root, textvariable=text_var,width=30)
-    edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
-    edit.pack(side='right', anchor='e')
-    search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
-    add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD("Add"))
-    add.pack(side='left', anchor='e')
+    if name == "previous":
+        windowWidth = 335
+        windowHeight = 450
+        root.geometry(f'{windowWidth}x{windowHeight}')
+        edit.config(text='Edit',width=5,command=lambda:EDIT())
+        add.config(text='Add',width=5,command=lambda:ADD("Add"))
+        second_frame.configure(width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
+        my_canvas.configure(width=100, height=405)
+        for widget,info in widget_info:
+            widget.place(**info)
+    else:
+        main_frame = tb.Frame(root)
+        main_frame.pack(fill=BOTH, expand=1)
+        my_canvas = tb.Canvas(main_frame, width=100, height=405)
+        root.configure(bg='#110833')
+        my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+        my_scrollbar = tb.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
+        my_scrollbar.pack(side=RIGHT, fill=Y)
+        my_canvas.configure(yscrollcommand=my_scrollbar.set)
+        second_frame = Frame(my_canvas, width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
+        my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
+        my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
+        search = tb.Entry(root, textvariable=text_var,width=30)
+        edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
+        edit.pack(side='right', anchor='e')
+        search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
+        add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD("Add"))
+        add.pack(side='left', anchor='e')
+        windowcreate('catagory')
     # Update scroll region to include all buttons
-    windowcreate('catagory')
     update_scrollregion()
 default_page()
 # Bind mouse wheel scrollings
