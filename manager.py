@@ -27,23 +27,29 @@ text_var = tb.StringVar()
 name_var = tb.StringVar()
 state_var = tb.StringVar(value='LLm')
 canscroll_var = tb.BooleanVar(value=True)
+currentmenu_var = tb.StringVar()
 email_var = tb.StringVar()
 color_var = tb.StringVar()
 id_var = tb.StringVar()
-posbut_var =tb.IntVar()
 password_var = tb.StringVar()
 catagory_var = tb.IntVar()
 widget_info = []
 subcata_info= []
 buttons= tb.Style()
 search_name = []
-buttonss = []
+cata_button = []
 buttons2 = []
-button_id = {}
 buttons.configure('Custom.TButton', font=('Helvetica', 12),foreground='#C0C0C0')
+def center(x,y):
+    rs = []
+    rs.append(x)
+    rs.append(y)
+    rs.append(int(root.winfo_screenwidth()/2 - x/ 2))
+    rs.append(int(root.winfo_screenheight()/2 - y/2))
+    return rs
 def on_text_change(*args): #search
-    global search_name,buttonss
-    if state_var.get()=='LLm':
+    global search_name,cata_button
+    if state_var.get()=='LLm' and add.cget('text') == "Add":
         cun.execute('''SELECT name FROM database WHERE cata == 'false' ''')
     else:
         cun.execute('''SELECT name FROM database WHERE cata = ?''',(state_var.get(),))
@@ -56,16 +62,16 @@ def on_text_change(*args): #search
     for i,cur in enumerate(nlst):
         if cur == curt and len(curt)!=0:
             search_name.append(lst[i])
-    if state_var.get()=='LLm':
-        windowcreate('searchc')
+    if state_var.get()=='LLm' and add.cget('text') == "Add":
+        windowcreate.searchc()
     else:
-        windowcreate('searchb')
+        windowcreate.searchb()
     search_name.clear()
     if(text_var.get() == ""):
-        if state_var.get()=='LLm':
-            windowcreate('catagory')
+        if state_var.get()=='LLm' and add.cget('text') == "Add":
+            windowcreate.catagory()
         else:
-            windowcreate(state_var.get())
+            windowcreate.subcatagory(state_var.get())
 def on_mousewheel(event): #scrolling
     if canscroll_var.get():
          my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
@@ -89,6 +95,7 @@ def ADD(name=""):
         editwindow.set(False)
         addwindow.set(False)
         default_page("previous")
+        
     else:
         def clear(cond):
             if catagory_var.get() == 1:
@@ -122,10 +129,10 @@ def ADD(name=""):
                     database(name_var.get(),email_var.get(),password_var.get(),color_var.get() or "6e40c0",Combo_Box.get() or "false",id_var.get())
                     update_combobox()
                     Combo_Box.configure(values=options)
-                    if state_var.get() == "LLm":
-                        windowcreate('catagory',True)
+                    if state_var.get() == "LLm" and add.cget('text') == "Add":
+                        windowcreate.catagory(True)
                     else:
-                        windowcreate(state_var.get(),True)
+                        windowcreate.subcatagory(state_var.get(),True)
                 else:
                     Submit.configure(state = 'disabled')
                     messagebox.showerror("Unsuccessful", "Invaild Format") 
@@ -147,6 +154,7 @@ def ADD(name=""):
                 Password_Label.grid()
                 Password_Entry.grid()
         if not addwindow.get() and not editwindow.get() and not subcatagory.get():
+            global widget_info
             addwindow.set(True)
             canscroll_var.set(False)
             addacc = Toplevel(root)
@@ -178,40 +186,40 @@ def ADD(name=""):
                 addacc.title("Add Catagory")
                 catagory_var.set(1)
                 clear(1)
-                windowWidth = 275
-                windowHeight = 150
-                screenWidth = root.winfo_screenwidth()
-                screenHeight = root.winfo_screenheight()
-                centerX = int(screenWidth/2 - windowWidth / 2)
-                centerY = int(screenHeight/2 - windowHeight / 2)
-                addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+                reso = center(275,150)
+                addacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
             else:
                 Submit.place(x=89,y=225)
                 addacc.title("Add Account")
-                windowWidth = 275
-                windowHeight = 272
-                screenWidth = root.winfo_screenwidth()
-                screenHeight = root.winfo_screenheight()
-                centerX = int(screenWidth/2 - windowWidth / 2)
-                centerY = int(screenHeight/2 - windowHeight / 2)
-                addacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+                reso = center(275,272)
+                addacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
             style = tb.Style()
             style.configure('Custom.TCheckbutton', font=('Helvetica', 18),foreground='#C0C0C0')
-def EDIT(): #same thing
-    global editwindow,addwindow
-    if not editwindow.get() and not addwindow.get() and not subcatagory.get():
-        editwindow.set(True)
-        canscroll_var.set(False)
-        editacc = Toplevel(root)
-        windowWidth = 450
-        windowHeight = 300
-        screenWidth = root.winfo_screenwidth()
-        screenHeight = root.winfo_screenheight()
-        centerX = int(screenWidth/2 - windowWidth / 2)
-        centerY = int(screenHeight/2 - windowHeight / 2)
-        editacc.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
-        editacc.resizable(False, False)
-        editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),canscroll_var.set(True)))
+class EDIT:
+    def form():
+        global editwindow,addwindow
+        if not editwindow.get() and not addwindow.get() and not subcatagory.get():
+            editwindow.set(True)
+            canscroll_var.set(False)
+            editacc = Toplevel(root)
+            reso = center(450,300)
+            editacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+            editacc.resizable(False, False)
+            editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),canscroll_var.set(True)))
+    def remove(name):
+        pass
+    def edit(name):
+        if not editwindow.get() and not addwindow.get() and not subcatagory.get():
+            edit.config(state="disabled")
+            editwindow.set(True)
+            canscroll_var.set(False)
+            editacc = Toplevel(root)
+            reso = center(450,300)
+            editacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+            editacc.resizable(False, False)
+            editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),canscroll_var.set(True),edit.config(state="enabled")))
+    def pop(e):
+        menur.post(e.x_root, e.y_root)
 def database(name,email,password,color, catagory,id):
     sql = ''' INSERT INTO database(name,email,password,color,cata,ID)
               VALUES(?,?,?,?,?,?) '''
@@ -229,7 +237,7 @@ def readbase(indic,id = 0):
         cun.execute("SELECT ID FROM database WHERE LENGTH(ID) >= 2 AND cata = ?",(state_var.get(),))
         ID = cun.fetchall()
         temp = ""
-        if int(id) >= 10:
+        if int(id) > 10:
             for i in range(len(ID)):
                 temp = ""
                 for j in range(len(ID[i][0])):
@@ -244,84 +252,98 @@ def readbase(indic,id = 0):
                 if i[0][0] == id:
                     count += 1
         return count
-def windowcreate(indic,update = False,subcata=""): #this will make it THAT window
-    global poscat_var,posbut_var,buttonss,state_var,widget_info,subcata_info
-    if indic == 'catagory': # creates the catagory
+class windowcreate(): #this will make it THAT window
+    global cata_button,state_var,widget_info,subcata_info
+    def catagory(update=False): # creates the catagory
             if update:
-                for button in buttonss:
+                for button in cata_button:
                     button.place_forget()
-            buttonss.clear()
+            cata_button.clear()
+            widget_info.clear()
             cun.execute("SELECT name FROM database WHERE cata = 'false'")
             names = cun.fetchall()
             for i in range(readbase('countc')):
                 button = tb.Button(second_frame, text=f'{names[i][0]}',takefocus=False,width=13,style='Custom.TButton')
-                button.configure(command=lambda b = names[i][0]: windowcreate(b))
+                button.bind("<Button-3>",EDIT.pop)
+                button.bind("<Button-3>", lambda event, g=names[i][0]: currentmenu_var.set(g), add="+")
+                button.configure(command=lambda b = names[i][0]: windowcreate.subcatagory(b))
                 if i % 2 == 0:
                     button.place(x=8, y = i*35)
                     update_scrollregion()
                 else:
                     button.place(x=179, y=(i-1)*35)
                 widget_info.append((button, button.place_info()))
-                buttonss.append(button)
-    elif indic == 'searchc': 
+                cata_button.append(button)
+    def searchc(): 
         global search_name
-        for button in buttonss:
-                 button.place_forget()
-        buttonss.clear()
+        for button in cata_button:
+                button.place_forget()
+        cata_button.clear()
+        widget_info.clear()
         for i in range(len(search_name)):
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=13,style='Custom.TButton')
-            button.configure(command=lambda b = search_name[i]: windowcreate(b))
+            button.configure(command=lambda b = search_name[i]: windowcreate.subcatagory(b))
+            button.bind("<Button-3>",EDIT.pop)
+            button.bind("<Button-3>", lambda event, g=search_name[i]: currentmenu_var.set(g), add="+")
             if i % 2 == 0:
                 button.place(x=8, y = i*35)
             else:
                 button.place(x=179, y=(i-1)*35)
-            buttonss.append(button)
+            cata_button.append(button)
+            widget_info.append((button, button.place_info()))
+
         update_scrollregion(len(search_name))
-    elif indic == 'searchb':
+    def searchb():
         for button in buttons2:
              button.place_forget()
         buttons2.clear()
         for i in range(len(search_name)):
             button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style='Custom.TButton')
+            button.bind("<Button-3>",EDIT.pop)
+            button.bind("<Button-3>", lambda event, g=search_name[i]: currentmenu_var.set(g), add="+")
+            button.configure(command=lambda b = search_name[i]: windowcreate.form(state_var.get(),b))
             if i % 2 == 0:
                 button.place(x=4, y = i*35)
             else:
                 button.place(x=200, y=(i-1)*35)
             buttons2.append(button)
         update_scrollregion(len(search_name))
-    else:
+    def subcatagory(indic,update=False):
             global my_canvas
-            root.title(indic)
-            if state_var.get() == 'LLm' or update:
-                for widget in second_frame.winfo_children():
-                    widget.place_forget()
-                windowWidth = 330
-                windowHeight = 450
-                root.geometry(f'{windowWidth}x{windowHeight}')
-            state_var.set(indic)
-            edit.config(text="Add",command=lambda:(ADD(name="Add"),Combo_Box.set(state_var.get()),catagory_var.set(0)))
-            add.config(text="Back",command=lambda:ADD(name="greger"))
-            cun.execute("SELECT ID FROM database WHERE name = ?", (indic,))
-            id = cun.fetchone()[0]
-            # subcata.resizable(False, False)
-            second_frame.configure(width=325, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
-            my_canvas.configure(width = 100, height = 150)
-            cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
-            tempname = cun.fetchall()
-            subnames = []
-            for i in range(len(tempname)):
-                subnames.append(tempname[i][0])
-            for i in range(readbase('countb',id)):
-                button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
-                subcata_info.append((button, 'place', button.place_info()))
-                button.configure(command=lambda b = subnames[i]: windowcreate(indic,False,b))
-                if i % 2 == 0:
-                    button.place(x=4, y = i*35)
-                else:
-                    button.place(x=200, y=(i-1)*35)
-                buttons2.append(button)
-            update_scrollregion(len(tempname))
-    if subcata != "":
+            if not editwindow.get() and not addwindow.get():
+                root.title(indic)
+                if (state_var.get() == 'LLm' and add.cget('text') == "Add") or update:
+                    for widget in second_frame.winfo_children():
+                        widget.place_forget()
+                    reso = center(335,450)
+                    root.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+                state_var.set(indic)
+                text_var.set("")
+                edit.config(text="Add",command=lambda:(ADD(name="Add"),Combo_Box.set(state_var.get()),catagory_var.set(0)))
+                add.config(text="Back",command=lambda:ADD(name="greger"))
+                cun.execute("SELECT ID FROM database WHERE name = ? AND cata = ?", (indic,"false"))
+                id = cun.fetchone()[0]
+                # subcata.resizable(False, False)
+                second_frame.configure(width=325, height=readbase('countb',id) * 35) #50*45, 45 is y for each button and 50 is number of button
+                my_canvas.configure(width = 100, height = 150)
+                cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
+                tempname = cun.fetchall()
+                subnames = []
+                for i in range(len(tempname)):
+                    subnames.append(tempname[i][0])
+                for i in range(readbase('countb',id)):
+                    button = tb.Button(second_frame, text=f'{subnames[i]}',takefocus=False,width=10,style='Custom.TButton')
+                    subcata_info.append((button, 'place', button.place_info()))
+                    button.configure(command=lambda b = subnames[i]: windowcreate.form(indic,b))
+                    button.bind("<Button-3>",EDIT.pop)
+                    button.bind("<Button-3>", lambda event, g=subnames[i]: currentmenu_var.set(g), add="+")
+                    if i % 2 == 0:
+                        button.place(x=4, y = i*35)
+                    else:
+                        button.place(x=200, y=(i-1)*35)
+                    buttons2.append(button)
+                update_scrollregion(len(tempname))
+    def form(indic,subcata):
         global editwindow,addwindow,subcatagory
         if not subcatagory.get() and not editwindow.get() and not addwindow.get():
             root.withdraw()
@@ -333,13 +355,8 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
             subcat = Toplevel(root)
             subcat.attributes("-topmost", True)
             subcat.title(subcata)
-            windowWidth = 300
-            windowHeight = 125
-            screenWidth = root.winfo_screenwidth()
-            screenHeight = root.winfo_screenheight()
-            centerX = int(screenWidth/2 - windowWidth / 2)
-            centerY = int(screenHeight/2 - windowHeight / 2)
-            subcat.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+            reso = center(300,125)
+            subcat.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
             # subcat.resizable(False, False) 
             style = tb.Style()
             style.configure("TEntry", selectbackground="#191830")
@@ -366,29 +383,30 @@ def windowcreate(indic,update = False,subcata=""): #this will make it THAT windo
 addwindow = BooleanVar()
 editwindow = BooleanVar()
 subcatagory = BooleanVar()
-#####################################################################
-windowWidth = 335
-windowHeight = 450
-screenWidth = root.winfo_screenwidth()
-screenHeight = root.winfo_screenheight()
-centerX = int(screenWidth/2 - windowWidth / 2)
-centerY = int(screenHeight/2 - windowHeight / 2)
-root.geometry(f'{windowWidth}x{windowHeight}+{centerX}+{centerY}')
+reso = center(335,450)
+root.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+menur = tb.Menu(root,relief="flat",borderwidth=0)
+menur.add_command(label="Edit", command=lambda:EDIT.edit(currentmenu_var.get()))
+menur.add_command(label="Remove",command=lambda: EDIT.remove("Add"))
+def creater(x,y):
+    for i in range(1,x):
+        database(f"kem{i}",f"kem{i}",f"kem{i}",f"kem{i}","false",f"{i}")
+        for j in range(1,y):
+            database(f"kem{j}",f"kem{j}",f"kem{j}",f"kem{j}",f"kem{i}",f"{i}/{j}")
 def default_page(name=""):
-    global my_canvas,second_frame,edit,add,state_var,main_frame
+    global my_canvas,second_frame,edit,add,state_var,main_frame,search
     root.title("Accounts")
     # root.resizable(False, False)
-    #####################################################################
     if name == "previous":
-        windowWidth = 335
-        windowHeight = 450
-        root.geometry(f'{windowWidth}x{windowHeight}')
-        edit.config(text='Edit',width=5,command=lambda:EDIT())
+        reso = center(335,450)
+        root.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+        edit.config(text='Edit',width=5,command=lambda:EDIT.form())
         add.config(text='Add',width=5,command=lambda:ADD("Add"))
         second_frame.configure(width=340, height=readbase('countc')*35) #50*45, 45 is y for each button and 50 is number of button
         my_canvas.configure(width=100, height=405)
         for widget,info in widget_info:
             widget.place(**info)
+        text_var.set("")
     else:
         main_frame = tb.Frame(root)
         main_frame.pack(fill=BOTH, expand=1)
@@ -402,15 +420,13 @@ def default_page(name=""):
         my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
         my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
         search = tb.Entry(root, textvariable=text_var,width=30)
-        edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT())
+        edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT.form())
         edit.pack(side='right', anchor='e')
         search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
         add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD("Add"))
         add.pack(side='left', anchor='e')
-        windowcreate('catagory')
-    # Update scroll region to include all buttons
+        windowcreate.catagory()
     update_scrollregion()
 default_page()
-# Bind mouse wheel scrollings
 text_var.trace_add("write", on_text_change)
 root.mainloop()
