@@ -1,9 +1,11 @@
 import os
 import ttkbootstrap as tb
-from tkinter import messagebox
 import pyperclip
-from tkinter import BooleanVar, Toplevel, Frame, BOTH, LEFT, RIGHT, VERTICAL, Y
+from tkinter import messagebox,BooleanVar, Toplevel, Frame, BOTH, LEFT, RIGHT, VERTICAL, Y
 from ttkbootstrap.constants import PRIMARY
+from ttkbootstrap.style import Style
+from ttkbootstrap.dialogs.colorchooser import ColorChooserDialog
+from PIL import Image, ImageTk 
 import sqlite3
 conn = sqlite3.connect(f'{os.getcwd()}/accounts.db')
 cun = conn.cursor()
@@ -48,6 +50,14 @@ def state_change(*args):
         state_bool.set(0)
     else:
         state_bool.set(1)
+def colorpicking(this):
+    this.focus_force()
+    cd = ColorChooserDialog(root)
+    cd.show()
+    if cd.result:
+        color_var.set(cd.result[2][1:])
+    this.after(100, lambda: this.focus_force())
+    print(color_var.get())
 def on_text_change(*args): # <=== this needs to be optimized
     global search_name,cata_button,lst
     curt = text_var.get()
@@ -58,9 +68,9 @@ def on_text_change(*args): # <=== this needs to be optimized
             results = cun.fetchall() 
             search_name.extend([result[0] for result in results])
         else:
-           cun.execute("""SELECT name FROM database WHERE cata == 'false' AND password = '' AND name LIKE ?""", (f"%{curt}%",))
-           results = cun.fetchall() 
-           search_name.extend([result[0] for result in results])
+            cun.execute("SELECT name, email FROM database WHERE cata = 'false' AND password = '' AND ((LENGTH(email) <= 0 AND name LIKE ?) OR (LENGTH(email) > 0 AND email LIKE ?))", (f"%{curt}%", f"%{curt}%"))
+            results = cun.fetchall()
+            search_name.extend([result[0] for result in results])
     if not state_bool.get():
         windowcreate.searchc()
     else:
@@ -86,9 +96,10 @@ def update_scrollregion(count = 0,update = False): #update 4 scrolling
     second_frame.update_idletasks()
     my_canvas.yview_moveto(0)
     second_frame.configure(width=340, height=count*35) 
-def ADD():
+class ADD():
     global addwindow,editwindow,widget_info
-    def clear(cond):
+    def submit(edit = False):
+        global Submit, addacc
         if not state_bool.get():
             cun.execute('''SELECT name FROM database WHERE cata == 'false' AND password = '' ''')
         else:
@@ -96,17 +107,17 @@ def ADD():
         namer = cun.fetchall()
         filter=False
         for i in range(len(namer)):
-            if name_var.get() in namer[i]:
+            if ( name_var.get() in namer[i] ) and not (name_var.get() == edit[2]):
                 filter = True
-        if cond == 0:
-            if not filter and ((len(color_var.get()) == 6) or color_var.get() == "") and name_var.get() != "" and ((email_var.get() != "" and password_var.get() !="" and state_bool.get()) or not state_bool.get()):
-                global lst
-                Submit.configure(state = 'disabled')
-                text_var.set("")
-                lst.append(name_var.get())
-                messagebox.showinfo(title="Successful", message="Added account successfully")
-                Submit.configure(state = 'enabled')
-                addacc.focus_force()
+        if not filter and ((len(color_var.get()) == 6) or color_var.get() == "") and name_var.get() != "" and ((email_var.get() != "" and password_var.get() !="" and state_bool.get()) or not state_bool.get()):
+            global lst
+            Submit.configure(state = 'disabled')
+            text_var.set("")
+            lst.append(name_var.get())
+            messagebox.showinfo(title="Successful", message=f'{"Added" if not edit else "Edited"} {"Account" if state_bool.get() else "Catagory"} successfully')
+            Submit.configure(state = 'enabled')
+            addacc.focus_force()
+            if not edit:
                 if readbase.countc() != 0 and not state_bool.get():
                     id_var.set(f"{readbase.countc()+1}")
                 elif not state_bool.get():
@@ -121,70 +132,88 @@ def ADD():
                             count += 1
                     id_var.set(f"{ID}/{count}")
                 database(name_var.get(),email_var.get(),password_var.get(),color_var.get() or "6e40c0","false" if not state_bool.get() else state_var.get(),id_var.get())
-                if not state_bool.get():
-                    windowcreate.catagory(True)
-                else:
-                    state_change()
-                    windowcreate.subcatagory(state_var.get(),True)
             else:
-                Submit.configure(state = 'disabled')
-                messagebox.showerror("Unsuccessful", "Invaild Format") 
-                Submit.configure(state = 'enabled')
-                addacc.focus_force()
+                
+                if state_bool.get():
+                    cun.execute('''UPDATE database SET name = ?, email = ?, password = ?,color = ? WHERE cata = ? AND name = ?''',(name_var.get(), email_var.get(), password_var.get(),color_var.get() if color_var.get() else "6e40c0" ,state_var.get(), edit[2]))
+                else:
+                    cun.execute("UPDATE database SET email = ? WHERE cata = 'false' AND name = ?",(name_var.get(),edit[2],))
+            conn.commit()
+
+            if not state_bool.get():
+                windowcreate.catagory(True)
+            else:
+                state_change()
+                windowcreate.subcatagory(state_var.get(),True)
+        else:
+            global Name_Entry
+            Submit.configure(state = 'disabled')
+            messagebox.showerror("Unsuccessful", "Invaild Format") 
+            Submit.configure(state = 'enabled')
+            if edit:
+                Name_Entry.delete(0,tb.END)
+                Name_Entry.insert(0,edit[2])
+            addacc.focus_force()
+        if not edit:
             name_var.set("")
             color_var.set("")
             email_var.set("")
             password_var.set("")
-        elif cond==1 and not state_bool.get():
-            Email_Label.grid_remove()
-            Email_Entry.grid_remove()
-            Password_Label.grid_remove()
-            Password_Entry.grid_remove()
-        elif cond == 1 and state_bool.get():
-            Email_Label.grid()
-            Email_Entry.grid()
-            Password_Label.grid()
-            Password_Entry.grid()
-    if not addwindow.get() and not editwindow.get() and not subcatagory.get():
-        global widget_info
-        addwindow.set(True)
-        canscroll_var.set(False)
-        addacc = Toplevel(root)
-        deffont = ('Helvetica', 18)
-        deffant = ('Helvetica', 14)
-        # addacc.resizable(False, False)
-        addacc.protocol("WM_DELETE_WINDOW", lambda: (addwindow.set(False) , addacc.destroy(),canscroll_var.set(True)))
-        Name_Label = tb.Label(addacc, text='Name:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
-        Name_Label.grid(column=0,row=0)
-        Email_Label = tb.Label(addacc, text='Email:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
-        Email_Label.grid(column=0,row=1)
-        Password_Label = tb.Label(addacc, text='Pass:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
-        Password_Label.grid(column=0,row=2)
-        Color_Label = tb.Label(addacc, text='Color:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
-        Color_Label.grid(column=0,row=3)
-        Password_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=password_var)
-        Name_Entry = tb.Entry(addacc,width=15,textvariable=name_var,font=deffant)
-        Email_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=email_var)
-        Color_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=color_var)
-        Name_Entry.grid(column=1,row=0,pady=10,padx=5)
-        Email_Entry.grid(column=1,row=1,pady=10,padx=5)
-        Password_Entry.grid(column=1,row=2,pady=10,padx=5)
-        Color_Entry.grid(column=1,row=3,pady=10,padx=5)
-        addacc.option_add('*TCombobox*Listbox.font', ('Helvetica', 14))
-        Submit = tb.Button(addacc,takefocus=False,width=10,style='Custom.TButton',text="Submit",command=lambda:(clear(0)))
-        if not state_bool.get():
-            Submit.place(x=85,y=110)
-            addacc.title("Add Catagory")
-            clear(1)
-            reso = center(275,150)
-            addacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
-        else:
-            Submit.place(x=89,y=225)
-            addacc.title("Add Account")
-            reso = center(275,272)
-            addacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
-        style = tb.Style()
-        style.configure('Custom.TCheckbutton', font=('Helvetica', 18),foreground='#C0C0C0')
+    def form(edit = False):
+        if not addwindow.get() and not editwindow.get() and not subcatagory.get():
+            global widget_info,Submit,addacc,Name_Entry
+            addwindow.set(True)
+            canscroll_var.set(False)
+            addacc = Toplevel(root)
+            deffont = ('Helvetica', 18)
+            deffant = ('Helvetica', 14)
+            # addacc.resizable(False, False)
+            addacc.protocol("WM_DELETE_WINDOW", lambda: (addwindow.set(False) , addacc.destroy(),canscroll_var.set(True)))
+            Name_Label = tb.Label(addacc, text='Name:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            Name_Label.grid(column=0,row=0)
+            Email_Label = tb.Label(addacc, text='Email:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            Password_Label = tb.Label(addacc, text='Pass:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            Color_Label = tb.Label(addacc, text='Color:',style=PRIMARY,font=deffont,foreground="#C0C0C0")
+            Password_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=password_var)
+            Name_Entry = tb.Entry(addacc,width=15,textvariable=name_var,font=deffant)
+            Email_Entry = tb.Entry(addacc,width=15,font=deffant,textvariable=email_var)
+            original_image = Image.open("color_icon_transparent.png") 
+            resized_image = original_image.resize((30, 30))
+            icon = ImageTk.PhotoImage(resized_image) 
+            colorpicker = tb.Button(addacc, image=icon, bootstyle="link",takefocus=False, padding=0, cursor="hand2", command= lambda:colorpicking(addacc))
+            colorpicker.image = icon
+            Name_Entry.grid(column=1,row=0,pady=10,padx=5)
+            addacc.option_add('*TCombobox*Listbox.font', ('Helvetica', 14))
+            Submit = tb.Button(addacc,takefocus=False,width=10,style='Custom.TButton',text="Submit",command=lambda:(ADD.submit(edit)))
+            Email_Entry.delete(0, tb.END)
+            Name_Entry.delete(0, tb.END)
+            Password_Entry.delete(0, tb.END)
+            color_var.set("6e40c0")
+            if edit:
+                color_var.set(edit[5])
+                if state_bool.get():
+                    Name_Entry.insert(0,edit[2])
+                    Email_Entry.insert(0,edit[3])
+                    Password_Entry.insert(0,edit[4])
+                else:
+                    Name_Entry.insert(0,edit[2] if not edit[3] else edit[3])
+            if not state_bool.get():
+                Submit.place(x=85,y=110)
+                addacc.title("Add Catagory")
+                reso = center(275,150)
+                addacc.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+100}')
+            else:
+                Email_Label.grid(column=0,row=1)
+                Email_Entry.grid(column=1,row=1,pady=10,padx=5)
+                Password_Entry.grid(column=1,row=2,pady=10,padx=5)
+                Password_Label.grid(column=0,row=2)
+                Submit.place(x=143,y=175)
+                Color_Label.place(x=5,y=175)
+                colorpicker.place(x=78, y=173)
+                reso = center(275,230)
+                addacc.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+100}')
+            style = tb.Style()
+            style.configure('Custom.TCheckbutton', font=('Helvetica', 18),foreground='#C0C0C0')
 class EDIT:
     def standard():
         global editwindow,addwindow,editacc
@@ -193,14 +222,18 @@ class EDIT:
             canscroll_var.set(False)
             editacc = Toplevel(root)
             reso = center(450,300)
-            editacc.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+            editacc.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+100}')
             editacc.resizable(False, False)
             editacc.protocol("WM_DELETE_WINDOW", lambda: (editwindow.set(False) , editacc.destroy(),canscroll_var.set(True)))
     def form():
         EDIT.standard()
     def remove(name):
         if not state_bool.get():
-            cun.executemany('''DELETE FROM database WHERE name = ? OR (cata = ? AND password != "") ''',((name,name),))
+            cun.execute('''SELECT name FROM database WHERE cata = ?''', (name,))
+            names = cun.fetchall()
+            for i in range(len(names)):
+                cun.execute('''DELETE FROM database WHERE cata = ? AND name = ?''',(name,names[i][0]))
+            cun.execute('''DELETE FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (name,))
             windowcreate.catagory(True)
         else:
             cun.executemany('''DELETE FROM database WHERE cata= ? AND name = ?''',((state_var.get() , name),))
@@ -209,13 +242,18 @@ class EDIT:
             windowcreate.subcatagory(state_var.get())
         conn.commit()
     def edit(name): #could be catagory/subcatagory
-        EDIT.standard()
-        editacc.title(name)
+        if state_bool.get():
+            cun.execute('''SELECT * FROM database WHERE cata = ? AND name = ?''', (state_var.get(), name))
+        else:
+            cun.execute('''SELECT * FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (name,))
+
+        ADD.form(cun.fetchone())
     def pop(e):
         menur.post(e.x_root, e.y_root)
 def database(name,email,password,color, catagory,id):
     sql = ''' INSERT INTO database(name,email,password,color,cata,ID)
               VALUES(?,?,?,?,?,?) '''
+    color_var.set("");
     comm = [(name, email, password,color,catagory,id),]
     cun.executemany(sql, comm)
     conn.commit()
@@ -256,9 +294,11 @@ class windowcreate(): #this will make it THAT window
             widget_info.clear()
             cun.execute("SELECT name FROM database WHERE cata = 'false' AND password = '' ")
             names = cun.fetchall()
+            cun.execute("SELECT email FROM database WHERE cata = 'false' AND password = '' ")
+            emails = cun.fetchall()
             update_scrollregion(0,update)
             for i in range(readbase.countc()):
-                button = tb.Button(second_frame, text=f'{names[i][0]}',takefocus=False,width=13,style='Custom.TButton')
+                button = tb.Button(second_frame, text=f'{names[i][0] if not emails[i][0] else emails[i][0]}',takefocus=False,width=13,style='Custom.TButton')
                 button.bind("<Button-3>",EDIT.pop)
                 button.bind("<Button-3>", lambda event, g=names[i][0]: currentmenu_var.set(g), add="+")
                 button.configure(command=lambda b = names[i][0]: windowcreate.subcatagory(b))
@@ -275,7 +315,9 @@ class windowcreate(): #this will make it THAT window
             button.destroy()
         cata_button.clear()
         for i in range(len(search_name)):
-            button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=13,style='Custom.TButton')
+            cun.execute("SELECT email FROM database WHERE cata = 'false' AND password = '' AND LENGTH(email) > 0 AND name = ?", (search_name[i],))
+            emails = cun.fetchall() or ""
+            button = tb.Button(second_frame, text=f'{search_name[i] if (emails == "") else emails[0][0]}',takefocus=False,width=13,style='Custom.TButton')
             button.configure(command=lambda b = search_name[i]: windowcreate.subcatagory(b))
             button.bind("<Button-3>",EDIT.pop)
             button.bind("<Button-3>", lambda event, g=search_name[i]: currentmenu_var.set(g), add="+")
@@ -303,7 +345,9 @@ class windowcreate(): #this will make it THAT window
     def subcatagory(indic,update=False):
             global my_canvas,stater
             if (not editwindow.get() and not addwindow.get()) or update:
-                root.title(indic)
+                cun.execute('''SELECT * FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (indic,))
+                title = cun.fetchone()
+                root.title(title[3] if title[3] else title[2])
                 if (state_var.get()=="LLm" and add.cget("text")=="Add") or update:
                     for widget,info in widget_info:
                         widget.place_forget()
@@ -312,7 +356,7 @@ class windowcreate(): #this will make it THAT window
                     root.geometry('335x450')
                 if state_var.get() != indic:
                     state_var.set(indic)
-                edit.config(text="Add",command=lambda:(ADD()))
+                edit.config(text="Add",command=lambda:(ADD.form()))
                 add.config(text="Back",command=lambda:default_page("previous"))
                 cun.execute("SELECT ID FROM database WHERE name = ? AND cata = ?", (indic,"false"))
                 id = cun.fetchone()[0]
@@ -321,8 +365,27 @@ class windowcreate(): #this will make it THAT window
                 my_canvas.configure(width = 100, height = 150)
                 cun.execute("SELECT name FROM database WHERE LENGTH(ID) > 2 AND cata = ?",(indic,))
                 subnames = list(cun.fetchall())
+                cun.execute("SELECT color FROM database WHERE cata = ?", (indic,))
+                style = tb.Style()
+                color = list(cun.fetchall())
                 for i in range(readbase.countb(id)):
-                    button = tb.Button(second_frame, text=f'{subnames[i][0]}',takefocus=False,width=10,style='Custom.TButton')
+                    main_color = "#"+color[i][0]
+                    gray_highlight = "#{:02X}{:02X}{:02X}".format(*(int(int(main_color[i:i+2], 16) * 0.9) for i in (1, 3, 5)))
+                    style.configure(f"Color{i}.TButton",
+                    background=main_color,
+                    bordercolor="#8B0000",
+                    borderwidth=3,
+                    font=("Helvetica", 12,),
+                    relief="flat",
+                    border_width=3,
+                    border_spacing=10,
+                    corner_radius=50
+                    )
+                    style.map(f"Color{i}.TButton",
+          background=[("active", gray_highlight), ("pressed", "#8B0000")],  # Keeps button red
+          foreground=[("active", "white"), ("pressed", "white")],  # Keeps text white
+          bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])  # Keeps border red
+                    button = tb.Button(second_frame, text=f'{subnames[i][0]}',takefocus=False,width=10,style=f"Color{i}.TButton")
                     subcata_info.append((button, 'place', button.place_info()))
                     button.configure(command=lambda b = subnames[i][0]: windowcreate.form(indic,b))
                     button.bind("<Button-3>",EDIT.pop)
@@ -349,7 +412,7 @@ class windowcreate(): #this will make it THAT window
             subcat.attributes("-topmost", True)
             subcat.title(subcata)
             reso = center(300,125)
-            subcat.geometry(f'{reso[0]}x{reso[1]}+{reso[2]}+{reso[3]}')
+            subcat.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+100}')
             # subcat.resizable(False, False) 
             style = tb.Style()
             style.configure("TEntry", selectbackground="#191830")
@@ -383,9 +446,9 @@ menur.add_command(label="Edit", command=lambda:EDIT.edit(currentmenu_var.get()))
 menur.add_command(label="Remove",command=lambda: EDIT.remove(currentmenu_var.get()))
 def create(x,y):
     for i in range(1,x):
-        database(f"cata{i}","","","","false",f"{1}")
+        database(f"cata{i}","","","6e40c0","false",f"{1}")
         for j in range(1,y):
-            database(f"subcata{j}",f"kem{j}",f"kem{j}",f"kem{j}",f"cata{i}",f"{1}/1")
+            database(f"subcata{j}",f"kem{j}",f"kem{j}",f"6e40c0",f"cata{i}",f"{1}/1")
 def default_page(name=""):
     global my_canvas,second_frame,edit,add,state_var,main_frame,search,stater
     root.title("Accounts")
@@ -401,7 +464,7 @@ def default_page(name=""):
         addwindow.set(False)
         root.geometry('335x450')
         edit.config(text='Edit',width=5,command=lambda:EDIT.form())
-        add.config(text='Add',width=5,command=lambda:ADD())
+        add.config(text='Add',width=5,command=lambda:ADD.form())
         second_frame.configure(width=340, height=readbase.countc()*35) #50*45, 45 is y for each button and 50 is number of button
         my_canvas.configure(width=100, height=405)
         for widget,info in widget_info:
@@ -426,7 +489,7 @@ def default_page(name=""):
         edit = tb.Button(root, text='Edit',takefocus=False,width=5,style=PRIMARY,command=lambda:EDIT.form())
         edit.pack(side='right', anchor='e')
         search.pack(side='right', anchor='w',expand=True,padx=15,pady=5)
-        add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD())
+        add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD.form())
         add.pack(side='left', anchor='e')
         windowcreate.catagory()
     update_scrollregion(0,True)
