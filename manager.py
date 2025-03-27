@@ -133,11 +133,10 @@ class ADD():
                     id_var.set(f"{ID}/{count}")
                 database(name_var.get(),email_var.get(),password_var.get(),color_var.get() or "6e40c0","false" if not state_bool.get() else state_var.get(),id_var.get())
             else:
-                
                 if state_bool.get():
                     cun.execute('''UPDATE database SET name = ?, email = ?, password = ?,color = ? WHERE cata = ? AND name = ?''',(name_var.get(), email_var.get(), password_var.get(),color_var.get() if color_var.get() else "6e40c0" ,state_var.get(), edit[2]))
                 else:
-                    cun.execute("UPDATE database SET email = ? WHERE cata = 'false' AND name = ?",(name_var.get(),edit[2],))
+                    cun.execute("UPDATE database SET email = ?,color = ? WHERE cata = 'false' AND name = ?",(name_var.get(),color_var.get() if color_var.get() else "6e40c0",edit[2],))
             conn.commit()
 
             if not state_bool.get():
@@ -198,10 +197,12 @@ class ADD():
                 else:
                     Name_Entry.insert(0,edit[2] if not edit[3] else edit[3])
             if not state_bool.get():
-                Submit.place(x=85,y=110)
-                addacc.title("Add Catagory")
-                reso = center(275,150)
-                addacc.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+100}')
+                Submit.place(x=130,y=55)
+                addacc.title("Add Catagory" if not edit else "Edit Catagory")
+                reso = center(270,100)
+                Color_Label.place(x=0,y=55)
+                colorpicker.place(x=79, y=53)
+                addacc.geometry(f'{reso[0]}x{reso[1]}+{root.winfo_x()+30}+{root.winfo_y()+150}')
             else:
                 Email_Label.grid(column=0,row=1)
                 Email_Entry.grid(column=1,row=1,pady=10,padx=5)
@@ -228,25 +229,26 @@ class EDIT:
     def form():
         EDIT.standard()
     def remove(name):
-        if not state_bool.get():
-            cun.execute('''SELECT name FROM database WHERE cata = ?''', (name,))
-            names = cun.fetchall()
-            for i in range(len(names)):
-                cun.execute('''DELETE FROM database WHERE cata = ? AND name = ?''',(name,names[i][0]))
-            cun.execute('''DELETE FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (name,))
-            windowcreate.catagory(True)
-        else:
-            cun.executemany('''DELETE FROM database WHERE cata= ? AND name = ?''',((state_var.get() , name),))
-            for widget,method,info in subcata_info:
-                widget.destroy()
-            windowcreate.subcatagory(state_var.get())
-        conn.commit()
+        response = messagebox.askyesno("Confirmation", f'Are you sure you want to remove {name}?')
+        if response:
+            if not state_bool.get():
+                cun.execute('''SELECT name FROM database WHERE cata = ?''', (name,))
+                names = cun.fetchall()
+                for i in range(len(names)):
+                    cun.execute('''DELETE FROM database WHERE cata = ? AND name = ?''',(name,names[i][0]))
+                cun.execute('''DELETE FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (name,))
+                windowcreate.catagory(True)
+            else:
+                cun.executemany('''DELETE FROM database WHERE cata= ? AND name = ?''',((state_var.get() , name),))
+                for widget,method,info in subcata_info:
+                    widget.destroy()
+                windowcreate.subcatagory(state_var.get())
+            conn.commit()
     def edit(name): #could be catagory/subcatagory
         if state_bool.get():
             cun.execute('''SELECT * FROM database WHERE cata = ? AND name = ?''', (state_var.get(), name))
         else:
             cun.execute('''SELECT * FROM database WHERE name = ? AND cata = 'false' AND password = '' ''', (name,))
-
         ADD.form(cun.fetchone())
     def pop(e):
         menur.post(e.x_root, e.y_root)
@@ -286,27 +288,46 @@ class readbase():
 class windowcreate(): #this will make it THAT window
     global cata_button,state_var,widget_info,subcata_info
     def catagory(update=False): # <=== this needs to be optimized
-            if update:
-                for button in cata_button:
-                    button.destroy()
-                for button,info in widget_info:
-                    button.destroy()
-            widget_info.clear()
-            cun.execute("SELECT name FROM database WHERE cata = 'false' AND password = '' ")
-            names = cun.fetchall()
-            cun.execute("SELECT email FROM database WHERE cata = 'false' AND password = '' ")
-            emails = cun.fetchall()
-            update_scrollregion(0,update)
-            for i in range(readbase.countc()):
-                button = tb.Button(second_frame, text=f'{names[i][0] if not emails[i][0] else emails[i][0]}',takefocus=False,width=13,style='Custom.TButton')
-                button.bind("<Button-3>",EDIT.pop)
-                button.bind("<Button-3>", lambda event, g=names[i][0]: currentmenu_var.set(g), add="+")
-                button.configure(command=lambda b = names[i][0]: windowcreate.subcatagory(b))
-                if i % 2 == 0:
-                    button.place(x=8, y = i*35)
-                else:
-                    button.place(x=179, y=(i-1)*35)
-                widget_info.append((button, button.place_info()))
+        if update:
+            for button in cata_button:
+                button.destroy()
+            for button,info in widget_info:
+                button.destroy()
+        widget_info.clear()
+        cun.execute("SELECT name FROM database WHERE cata = 'false' AND password = '' ")
+        names = cun.fetchall()
+        cun.execute("SELECT email FROM database WHERE cata = 'false' AND password = '' ")
+        emails = cun.fetchall()
+        update_scrollregion(0,update)
+        cun.execute("SELECT color FROM database WHERE cata = 'false' AND password = '' ")
+        style = tb.Style()
+        color = list(cun.fetchall())
+        for i in range(readbase.countc()):
+            main_color = f"#{color[i][0]}" 
+            gray_highlight = "#{:02X}{:02X}{:02X}".format(*(int(int(main_color[i:i+2], 16) * 0.9) for i in (1, 3, 5)))
+            style.configure(f"Color{i}.TButton",
+            background=main_color,
+            bordercolor="#8B0000",
+            borderwidth=3,
+            font=("Helvetica", 12,),
+            relief="flat",
+            border_width=3,
+            border_spacing=10,
+            corner_radius=50
+            )
+            style.map(f"Color{i}.TButton",
+        background=[("active", gray_highlight), ("pressed", "#8B0000")],  # Keeps button red
+        foreground=[("active", "white"), ("pressed", "white")],  # Keeps text white
+        bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])  # Keeps border red
+            button = tb.Button(second_frame, text=f'{names[i][0] if not emails[i][0] else emails[i][0]}',takefocus=False,width=13,style=f"Color{i}.TButton")
+            button.bind("<Button-3>",EDIT.pop)
+            button.bind("<Button-3>", lambda event, g=names[i][0]: currentmenu_var.set(g), add="+")
+            button.configure(command=lambda b = names[i][0]: windowcreate.subcatagory(b))
+            if i % 2 == 0:
+                button.place(x=8, y = i*35)
+            else:
+                button.place(x=179, y=(i-1)*35)
+            widget_info.append((button, button.place_info()))
     def searchc(): 
         global search_name
         for button,info in widget_info:
@@ -314,10 +335,26 @@ class windowcreate(): #this will make it THAT window
         for button in cata_button:
             button.destroy()
         cata_button.clear()
+        style = tb.Style()
         for i in range(len(search_name)):
             cun.execute("SELECT email FROM database WHERE cata = 'false' AND password = '' AND LENGTH(email) > 0 AND name = ?", (search_name[i],))
             emails = cun.fetchall() or ""
-            button = tb.Button(second_frame, text=f'{search_name[i] if (emails == "") else emails[0][0]}',takefocus=False,width=13,style='Custom.TButton')
+            cun.execute("SELECT color FROM database WHERE (cata = 'false' AND password = '' or (LENGTH(email) > 0) )AND name = ?", (search_name[i],))
+            color = cun.fetchall()
+            main_color = "#"+color[0][0]
+            gray_highlight = "#{:02X}{:02X}{:02X}".format(*(int(int(main_color[i:i+2], 16) * 0.9) for i in (1, 3, 5)))
+            style.configure(f"Color{i}.TButton",
+            background=main_color,
+            bordercolor="#8B0000",
+            borderwidth=3,
+            font=("Helvetica", 12,),
+            relief="flat",
+            border_width=3,
+            border_spacing=10,
+            corner_radius=50
+            )
+            style.map(f"Color{i}.TButton",background=[("active", gray_highlight), ("pressed", "#8B0000")],foreground=[("active", "white"), ("pressed", "white")],bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])
+            button = tb.Button(second_frame, text=f'{search_name[i] if (emails == "") else emails[0][0]}',takefocus=False,width=13,style=f'Color{i}.TButton')
             button.configure(command=lambda b = search_name[i]: windowcreate.subcatagory(b))
             button.bind("<Button-3>",EDIT.pop)
             button.bind("<Button-3>", lambda event, g=search_name[i]: currentmenu_var.set(g), add="+")
@@ -331,8 +368,24 @@ class windowcreate(): #this will make it THAT window
         for button in buttons2:
              button.destroy()
         buttons2.clear()
+        style = tb.Style()
         for i in range(len(search_name)):
-            button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style='Custom.TButton')
+            cun.execute("SELECT color FROM database WHERE cata = ? AND name = ?", (state_var.get(),search_name[i],))
+            color = cun.fetchall()
+            main_color = "#"+color[0][0]
+            gray_highlight = "#{:02X}{:02X}{:02X}".format(*(int(int(main_color[i:i+2], 16) * 0.9) for i in (1, 3, 5)))
+            style.configure(f"Color{i}.TButton",
+            background=main_color,
+            bordercolor="#8B0000",
+            borderwidth=3,
+            font=("Helvetica", 12,),
+            relief="flat",
+            border_width=3,
+            border_spacing=10,
+            corner_radius=50
+            )
+            style.map(f"Color{i}.TButton",background=[("active", gray_highlight), ("pressed", "#8B0000")],foreground=[("active", "white"), ("pressed", "white")],bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])
+            button = tb.Button(second_frame, text=f'{search_name[i]}',takefocus=False,width=10,style=f'Color{i}.TButton')
             button.bind("<Button-3>",EDIT.pop)
             button.bind("<Button-3>", lambda event, g=search_name[i]: currentmenu_var.set(g), add="+")
             button.configure(command=lambda b = search_name[i]: windowcreate.form(state_var.get(),b))
@@ -381,10 +434,7 @@ class windowcreate(): #this will make it THAT window
                     border_spacing=10,
                     corner_radius=50
                     )
-                    style.map(f"Color{i}.TButton",
-          background=[("active", gray_highlight), ("pressed", "#8B0000")],  # Keeps button red
-          foreground=[("active", "white"), ("pressed", "white")],  # Keeps text white
-          bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])  # Keeps border red
+                    style.map(f"Color{i}.TButton",background=[("active", gray_highlight), ("pressed", "#8B0000")],foreground=[("active", "white"), ("pressed", "white")],bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])
                     button = tb.Button(second_frame, text=f'{subnames[i][0]}',takefocus=False,width=10,style=f"Color{i}.TButton")
                     subcata_info.append((button, 'place', button.place_info()))
                     button.configure(command=lambda b = subnames[i][0]: windowcreate.form(indic,b))
@@ -468,7 +518,8 @@ def default_page(name=""):
         second_frame.configure(width=340, height=readbase.countc()*35) #50*45, 45 is y for each button and 50 is number of button
         my_canvas.configure(width=100, height=405)
         for widget,info in widget_info:
-            widget.place(**info)
+            widget.destroy()
+        windowcreate.catagory()
         text_var.trace_remove('write', stater)
         text_var.set("")
         stater = text_var.trace_add("write", on_text_change)
