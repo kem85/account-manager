@@ -1,12 +1,17 @@
-import os
 import ttkbootstrap as tb
 import pyperclip
+import psutil
+import os
+import time
 from tkinter import messagebox,BooleanVar, Toplevel, Frame, BOTH, LEFT, RIGHT, VERTICAL, Y
 from ttkbootstrap.constants import PRIMARY
 from ttkbootstrap.style import Style
 from ttkbootstrap.dialogs.colorchooser import ColorChooserDialog
-from PIL import Image, ImageTk 
+from PIL import Image, ImageTk, ImageDraw
 import sqlite3
+from pystray import MenuItem as item, Icon
+import threading
+import keyboard
 conn = sqlite3.connect(f'{os.getcwd()}/accounts.db')
 cun = conn.cursor()
 cun.execute('''CREATE Table IF NOT EXISTS database (
@@ -18,6 +23,7 @@ cun.execute('''CREATE Table IF NOT EXISTS database (
     color    TEXT DEFAULT ('6e40c0') 
 );''')
 root = tb.Window(themename="vapor")
+height_var = tb.IntVar()
 text_var = tb.StringVar()
 name_var = tb.StringVar()
 state_bool = tb.BooleanVar(value="0")
@@ -43,6 +49,23 @@ def center(x,y):
     rs.append(int(root.winfo_screenwidth()/2 - x/ 2))
     rs.append(int(root.winfo_screenheight()/2 - y/2))
     return rs
+ICON_PATH = "color_icon_transparent.png"
+def show_window():
+    global tray_icon
+    if state_bool.get():
+        default_page("previous",True)
+    root.deiconify()  # Show window
+    tray_icon.stop()  # Stop tray icon
+def hide_window():
+    global tray_icon
+    root.withdraw()
+    menu = (item('Show', show_window), item('Exit', exit_app))
+    image = Image.open(ICON_PATH)  
+    tray_icon = Icon("TrayIcon", image, menu=menu)
+    threading.Thread(target=tray_icon.run, daemon=True).start()
+def exit_app():
+    tray_icon.stop()
+    root.destroy()
 def state_change(*args):
     global lst
     lst.clear()
@@ -57,7 +80,6 @@ def colorpicking(this):
     if cd.result:
         color_var.set(cd.result[2][1:])
     this.after(100, lambda: this.focus_force())
-    print(color_var.get())
 def on_text_change(*args): # <=== this needs to be optimized
     global search_name,cata_button,lst
     curt = text_var.get()
@@ -84,9 +106,12 @@ def on_text_change(*args): # <=== this needs to be optimized
 def on_mousewheel(event): #scrolling
     if canscroll_var.get():
          my_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-def update_scrollregion(count = 0,update = False): #update 4 scrolling
-    if count <= 0:            
-        count = readbase.countc()
+def update_scrollregion(count = 0,update = False,tray = False): #update 4 scrolling
+    if count <= 0:      
+        if not tray:      
+            count = readbase.countc()
+        else:
+            count = (height_var.get())
         if (count % 2 == 0) and update:
             count += 1
     min_height = 500
@@ -424,7 +449,7 @@ class windowcreate(): #this will make it THAT window
                 for i in range(readbase.countb(id)):
                     main_color = "#"+color[i][0]
                     gray_highlight = "#{:02X}{:02X}{:02X}".format(*(int(int(main_color[i:i+2], 16) * 0.9) for i in (1, 3, 5)))
-                    style.configure(f"Color{i}.TButton",
+                    style.configure(f"pablo{i}.TButton",
                     background=main_color,
                     bordercolor="#8B0000",
                     borderwidth=3,
@@ -434,8 +459,8 @@ class windowcreate(): #this will make it THAT window
                     border_spacing=10,
                     corner_radius=50
                     )
-                    style.map(f"Color{i}.TButton",background=[("active", gray_highlight), ("pressed", "#8B0000")],foreground=[("active", "white"), ("pressed", "white")],bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])
-                    button = tb.Button(second_frame, text=f'{subnames[i][0]}',takefocus=False,width=10,style=f"Color{i}.TButton")
+                    style.map(f"pablo{i}.TButton",background=[("active", gray_highlight), ("pressed", "#8B0000")],foreground=[("active", "white"), ("pressed", "white")],bordercolor=[("active", "#8B0000"), ("pressed", "#8B0000")])
+                    button = tb.Button(second_frame, text=f'{subnames[i][0]}',takefocus=False,width=10,style=f"pablo{i}.TButton")
                     subcata_info.append((button, 'place', button.place_info()))
                     button.configure(command=lambda b = subnames[i][0]: windowcreate.form(indic,b))
                     button.bind("<Button-3>",EDIT.pop)
@@ -499,7 +524,7 @@ def create(x,y):
         database(f"cata{i}","","","6e40c0","false",f"{1}")
         for j in range(1,y):
             database(f"subcata{j}",f"kem{j}",f"kem{j}",f"6e40c0",f"cata{i}",f"{1}/1")
-def default_page(name=""):
+def default_page(name="",tray = False):
     global my_canvas,second_frame,edit,add,state_var,main_frame,search,stater
     root.title("Accounts")
     # root.resizable(False, False)
@@ -515,11 +540,12 @@ def default_page(name=""):
         root.geometry('335x450')
         edit.config(text='Edit',width=5,command=lambda:EDIT.form())
         add.config(text='Add',width=5,command=lambda:ADD.form())
-        second_frame.configure(width=340, height=readbase.countc()*35) #50*45, 45 is y for each button and 50 is number of button
+        second_frame.configure(width=340, height=readbase.countc()*35 if not tray else height_var.get()) #50*45, 45 is y for each button and 50 is number of button.
+        if not tray:
+            height_var.set(readbase.countc()*35)
         my_canvas.configure(width=100, height=405)
         for widget,info in widget_info:
-            widget.destroy()
-        windowcreate.catagory()
+            widget.place(**info)
         text_var.trace_remove('write', stater)
         text_var.set("")
         stater = text_var.trace_add("write", on_text_change)
@@ -533,7 +559,8 @@ def default_page(name=""):
         my_scrollbar = tb.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
         my_scrollbar.pack(side=RIGHT, fill=Y)
         my_canvas.configure(yscrollcommand=my_scrollbar.set)
-        second_frame = Frame(my_canvas, width=340, height=readbase.countc()*35) #50*45, 45 is y for each button and 50 is number of button
+        second_frame = Frame(my_canvas, width=340, height=(readbase.countc()*35)) #50*45, 45 is y for each button and 50 is number of button
+        height_var.set(readbase.countc()*35)
         my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
         my_canvas.bind_all("<MouseWheel>", on_mousewheel)  
         search = tb.Entry(root, textvariable=text_var,width=30)
@@ -543,8 +570,18 @@ def default_page(name=""):
         add = tb.Button(root, text='Add',takefocus=False,width=5,style=PRIMARY,command=lambda:ADD.form())
         add.pack(side='left', anchor='e')
         windowcreate.catagory()
-    update_scrollregion(0,True)
+    if not tray:
+        update_scrollregion(0,True)
+        return
+    update_scrollregion(0,True,True)
 default_page()
+keyboard.add_hotkey("ctrl+alt+x", show_window)  # Keybind to restore
 stater = text_var.trace_add("write", on_text_change)
 state_var.trace_add("write", state_change)
+root.protocol("WM_DELETE_WINDOW", hide_window)  # Close button (X)
+root.protocol("WM_MINIMIZE", hide_window)  # Minimize button (_)
+uptime_seconds = time.time() - psutil.boot_time()
+start_minimized = uptime_seconds < 300
+if start_minimized:
+    root.after(100, hide_window)
 root.mainloop()
